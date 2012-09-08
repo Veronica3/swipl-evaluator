@@ -9,9 +9,15 @@
   max-width: 40em;
   min-width: 5em;
 }
-.error {
-  color: red;
+#loggingwindow {
+  display: none;
 }
+.error > #loggingwindow {
+  color: red;
+  display: block;
+}
+#successoutput { display: none; }
+:not( .error ) > #successoutput { display: block; }
 iframe {
   width: 100%;
   height: 25em;
@@ -68,7 +74,7 @@ $.postJSON = function(url, data, callback) {
 }
 
 $("#loggingwindow").ajaxError(function(e, jqxhr, settings, exception) {
-    $(this).addClass("error");
+    $("#result").addClass("error");
     //$(this).text( exception.name + ": " + exception.message );
     $(this).text( exception.toString() );
     $(this).append($("<br>"));
@@ -78,21 +84,28 @@ $("#loggingwindow").ajaxError(function(e, jqxhr, settings, exception) {
     var ct = jqxhr.getResponseHeader("Content-Type")
     ifrm.get()[0].src = "data:" + ct + ";base64," + window.btoa(jqxhr.responseText);
     window.responseText = jqxhr.responseText;
-    $(this).spin(false);
+    $("#result").spin(false);
     throw exception;
 });
 
 window.run_swipl = function(clauses, queries) {
-	$("#loggingwindow").spin();
+	$("#result").spin();
 	$.postJSON("/run_swipl",{"clauses": clauses, "queries": queries}, function (data) {
 		if (data["status"] == "ok") {
-			$("#loggingwindow").removeClass("error");
-			$("#loggingwindow").text(data["data"]);
+			$("#result").removeClass("error");
+/*
+			vt100.screen.reset();
+			vt100.display.reset();
+			vt100.write(data["data"]);
+*/
+			//siab.clearRegion(0,0,siab.terminalWidth,siab.terminalHeight-1,undefined, undefined);
+			siab.reset();
+			siab.vt100(data["data"]);
 		} else {
-			$("#loggingwindow").addClass("error");
+			$("#result").addClass("error");
 			$("#loggingwindow").text(data["errormsg"]);
 		}
-		$("#loggingwindow").spin(false);
+		$("#result").spin(false);
 	});
 }
 
@@ -109,18 +122,51 @@ a(X,[Y|T],[X,Y|T]):- X=<Y.\n\
 a(X,[Y|T],[Y|Z]):- X>Y, a(X,T,Z).\n\
 ",
 		queries: "a(1,[0,6],X).\na(1,X,[6,7,8]).\na(6,X,[6,7,8])."
+	},
+	{
+		name: "cut",
+		clauses: "\n\
+b(2).\n\
+b(1).\n\
+\n\
+c(1).\n\
+c(2).\n\
+d(3).\n\
+\n\
+a1(X,Y):- ! ,b(X), c(Y).\n\
+a1(X,Y):- d(X), d(Y).\n\
+a2(X,Y):- b(X), !, c(Y).\n\
+a2(X,Y):- d(X), d(Y).\n\
+a3(X,Y):- b(X), c(Y), !.\n\
+a3(X,Y):- d(X), d(Y).\n\
+\n\
+",
+		queries: "a1(X,Y).\na2(X,Y).\na3(X,Y)."
 	}
 ];
 
+window.nameToElem = {};
+
 scripts.map(function(v) {
-	$("#examples").append($("<li>").append($("<a href=\"#\">").click(function(){
-		$("#clauses").val(v.clauses);
-		$("#queries").val(v.queries);
-	}).append(v.name)));
+	var a = $("<a>");
+	a.attr("href","#"+v.name)
+		.click(function(e){
+			$("#clauses").val(v.clauses);
+			$("#queries").val(v.queries);
+		})
+		.append(v.name);
+	$("#examples").append($("<li>").append(a));
+	if(window.location.hash.substring(1) === v.name) {
+		a.click();
+	}
 });
 
 });
 </script>
+<link rel="stylesheet" href="styles.css" type="text/css">
+<style type="text/css">
+
+</style>
 </head>
 <body>
 <h1>SWI Prolog</h1>
@@ -141,7 +187,24 @@ scripts.map(function(v) {
 <input type="submit" onclick="submit();">
 </div>
 <div>Prolog output:</div>
-<div id="loggingwindow"></div>
+<div id="result">
+<div id="loggingwindow">Log output here.</div>
+<div id="successoutput">
+<!--
+    <canvas id="vt100"></canvas>
+    <script type="text/javascript"src="vt100/libs/underscore.js"></script>
+    <script type="text/javascript"src="vt100/libs/backbone.js"></script>
+    <script type="text/javascript"src="vt100/vt100.js"></script>
+    <script type="text/javascript">
+      var vt100 = new VT100({canvas:document.getElementById('vt100')})
+    </script>
+-->
+    <script type="text/javascript" src="vt100.js"></script>
+    <div id="vt100" style="height:30em">
+    <script type="text/javascript">window.siab = new VT100(); window.siab.toggleCursorBlinking(); </script>
+    </div>
+</div>
+</div>
 </body>
 </html>
 

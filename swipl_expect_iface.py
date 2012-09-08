@@ -40,7 +40,7 @@ def run_swipl(filename, queries):
 	waitoutput=False
 	while 1:
 		try:
-			c = child.read_nonblocking(size=1, timeout=0.5)
+			c = child.read_nonblocking(size=1, timeout=0.1)
 		except pexpect.TIMEOUT:
 			if waitoutput:
 				raise PrologError("Prolog interpreter busy for too long. Missing dot?")
@@ -48,21 +48,15 @@ def run_swipl(filename, queries):
 			waitoutput=True
 			continue
 			
-		#print(hex(ord(c)) , c)
-		#print( c)
 		if c != ";": waitoutput=False
 		if dieonnewline and c[-1::] == "\n":
 			raise PrologError("swipl: " + buf.split("\n")[-1])
-			#raise PrologError("swipl: " + buf)
 		buf += c
 		if buf[-6::] == "\nERROR":
-			#print("error! abort on newline")
 			dieonnewline = True
 		elif buf[-4::] == "\n?- ":
 			if len(queries) == 0: 
-				#print("halting")
 				sendline("halt.")
-				#child.sendcontrol("d")
 				break
 			else:
 				do_query(queries.pop())
@@ -73,9 +67,9 @@ def run_swipl(filename, queries):
 		child.wait()
 	except pexpect.ExceptionPexpect:
 		pass
-	buf = buf.replace("".join(map(chr,[0x1b, 0x5b, 0x43])), "")
-	filtered_string = ''.join(filter(lambda x:x in list(map(chr,range(ord(' '),ord('~'))))+["\n"], buf))
-	return filtered_string
+	#buf = buf.replace("".join(map(chr,[0x1b, 0x5b, 0x43])), "")
+	#buf = ''.join(filter(lambda x:x in list(map(chr,range(ord(' '),ord('~'))))+["\n"], buf))
+	return buf
 
 if __name__ == "__main__":
 	print(run_swipl("../u8_5",["a(X,[],[1]).","open('/etc/passwd', read, Stream)."]))
