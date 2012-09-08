@@ -100,11 +100,35 @@ window.submit = function() {
 	run_swipl($("#clauses").val(), $("#queries").val().split("\n").filter(function(a) {return a.trim() !== "";}));
 };
 
+var scripts = [
+	{
+		name: "list insertion",
+
+		clauses: "a(X,[],[X]).\n\
+a(X,[Y|T],[X,Y|T]):- X=<Y.\n\
+a(X,[Y|T],[Y|Z]):- X>Y, a(X,T,Z).\n\
+",
+		queries: "a(1,[0,6],X).\na(1,X,[6,7,8]).\na(6,X,[6,7,8])."
+	}
+];
+
+scripts.map(function(v) {
+	$("#examples").append($("<li>").append($("<a href=\"#\">").click(function(){
+		$("#clauses").val(v.clauses);
+		$("#queries").val(v.queries);
+	}).append(v.name)));
+});
+
 });
 </script>
 </head>
 <body>
 <h1>SWI Prolog</h1>
+<div>
+<h2>Examples</h2>
+<ul id="examples">
+</ul>
+</div>
 <div id="form">
 <div style="float:left">
 <label for="clauses">Clauses:<br></label>
